@@ -2,6 +2,8 @@ package user
 
 import (
 	"errors"
+	"go-chat/internal/config"
+	"go-chat/pkg/jwt"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -38,17 +40,24 @@ func (s *Service) Register(username, password string) (*User, error) {
 	return user, nil
 }
 
-func (s *Service) Login(username, password string) (*User, error) {
+func (s *Service) Login(username, password string) (*User, string, error) {
 
 	user, err := s.repo.FindByUsername(username)
 	if err != nil {
-		return nil, errors.New("用户名或密码错误")
+		return nil, "", errors.New("用户名或密码错误")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("用户名或密码错误")
+		return nil, "", errors.New("用户名或密码错误")
 	}
 
-	return user, nil
+	cfg := config.AppConfig
+
+	token, err := jwt.GenerateToken(user.ID, user.Username, cfg.JWT.Secret, cfg.JWT.ExpireHours)
+	if err != nil {
+		return nil, "", errors.New("生成token失败")
+	}
+
+	return user, token, nil
 }
