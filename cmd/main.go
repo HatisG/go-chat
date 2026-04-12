@@ -26,8 +26,13 @@ func main() {
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
 
+	friendRepo := friend.NewRepository(config.DB)
+	friendService := friend.NewService(friendRepo)
+	friendHandler := friend.NewHandler(friendService)
+
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)
+	friend.RegisterRountes(api, friendHandler)
 
 	authApi := r.Group("/api/v1")
 	authApi.Use(middleware.Auth())

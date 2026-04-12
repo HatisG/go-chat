@@ -21,3 +21,10 @@ type FriendRequest struct {
 	RequestMsg string `gorm:"size:255"`
 	HandledAt  *time.Time
 }
+
+type User struct {
+	ID       uint   `gorm:"primaryKey"`
+	Username string `gorm:"size:32"`
+	Nickname string `gorm:"size:32"`
+	Avatar   string `gorm:"size:255"`
+}

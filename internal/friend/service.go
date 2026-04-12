@@ -10,6 +10,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
+//发送好友申请
 func (s *Service) SendRequest(fromUserID, toUserID uint, msg string) error {
 	if fromUserID == toUserID {
 		return errors.New("不能添加自己为好友")
@@ -36,6 +37,7 @@ func (s *Service) SendRequest(fromUserID, toUserID uint, msg string) error {
 
 }
 
+//接受好友申请
 func (s *Service) AcceptRequest(requestID, currentUserID uint) error {
 
 	req, err := s.repo.FindRequestByID(requestID)
@@ -64,6 +66,7 @@ func (s *Service) AcceptRequest(requestID, currentUserID uint) error {
 	return s.repo.CreateFriendship(friendship)
 }
 
+//拒绝好友申请
 func (s *Service) RejectRequest(requestID, currentUserID uint) error {
 
 	req, err := s.repo.FindRequestByID(requestID)
@@ -82,6 +85,7 @@ func (s *Service) RejectRequest(requestID, currentUserID uint) error {
 	return s.repo.UpdateRequestStatus(requestID, 2)
 }
 
+//删除好友
 func (s *Service) DeleteFriend(userID, friendID uint) error {
 
 	_, err := s.repo.FindFriendship(userID, friendID)
@@ -92,10 +96,17 @@ func (s *Service) DeleteFriend(userID, friendID uint) error {
 	return s.repo.DeleteFriendship(userID, friendID)
 }
 
+//获取好友申请列表
 func (s *Service) GetPendingRequests(userID uint) ([]FriendRequest, error) {
 	return s.repo.FindPendingRequestsByToUser(userID)
 }
 
+//获取好友列表
 func (s *Service) GetFriendList(userID uint) ([]Friendship, error) {
 	return s.repo.FindFriendsByUserID(userID)
+}
+
+//获取好友列表（详细）
+func (s *Service) GetFriendListWithInfo(userID uint) ([]FriendInfo, error) {
+	return s.repo.FindFriendInfoByUserID(userID)
 }

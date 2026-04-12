@@ -19,6 +19,7 @@ type Repository interface {
 	FindFriendship(userID, friendID uint) (*Friendship, error)
 	FindFriendsByUserID(userID uint) ([]Friendship, error)
 	DeleteFriendship(userID, friendID uint) error
+	FindFriendInfoByUserID(userID uint) ([]FriendInfo, error)
 }
 
 type repository struct {
@@ -118,4 +119,48 @@ func (r *repository) DeleteFriendship(userID, friendID uint) error {
 		userID, friendID, friendID, userID,
 	).Delete(&Friendship{}).Error
 
+}
+
+func (r *repository) FindFriendInfoByUserID(userID uint) ([]FriendInfo, error) {
+
+	friendships, err := r.FindFriendsByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	friendIDs := make([]uint, 0, len(friendships))
+	statusMap := make(map[uint]int)
+	for _, f := range friendships {
+		if f.UserID == userID {
+			friendIDs = append(friendIDs, f.FriendID)
+			statusMap[f.FriendID] = f.Status
+		} else {
+			friendIDs = append(friendIDs, f.UserID)
+			statusMap[f.UserID] = f.Status
+		}
+	}
+
+	if len(friendIDs) == 0 {
+		return []FriendInfo{}, nil
+	}
+
+	var users []User
+	err = r.db.Where("id in ?", friendIDs).Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	friends := make([]FriendInfo, 0, len(users))
+	for _, u := range users {
+		friends = append(friends, FriendInfo{
+			ID:       u.ID,
+			Username: u.Username,
+			Nickname: u.Nickname,
+			Avatar:   u.Avatar,
+			Status:   statusMap[u.ID],
+		})
+
+	}
+
+	return friends, err
 }
