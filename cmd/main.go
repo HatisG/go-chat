@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"go-chat/internal/config"
+	"go-chat/internal/friend"
 	"go-chat/internal/middleware"
 	"go-chat/internal/user"
 	"go-chat/pkg/response"
@@ -16,7 +17,7 @@ func main() {
 	cfg := config.AppConfig
 
 	config.InitDB()
-	config.DB.AutoMigrate(&user.User{})
+	config.DB.AutoMigrate(&user.User{}, &friend.Friendship{}, &friend.FriendRequest{})
 
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()
