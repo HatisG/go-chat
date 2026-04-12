@@ -29,10 +29,12 @@ func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
+// 创建好友申请
 func (r *repository) CreateRequest(req *FriendRequest) error {
 	return r.db.Create(req).Error
 }
 
+// 根据id查好友申请
 func (r *repository) FindRequestByID(id uint) (*FriendRequest, error) {
 	var req FriendRequest
 
@@ -45,6 +47,7 @@ func (r *repository) FindRequestByID(id uint) (*FriendRequest, error) {
 
 }
 
+// 查询2个用户之间是否存在待处理的申请
 func (r *repository) FindPendingRequest(fromUserID, toUserID uint) (*FriendRequest, error) {
 	var req FriendRequest
 
@@ -57,6 +60,7 @@ func (r *repository) FindPendingRequest(fromUserID, toUserID uint) (*FriendReque
 
 }
 
+// 查询某个用户收到的所有待处理申请
 func (r *repository) FindPendingRequestsByToUser(toUserID uint) ([]FriendRequest, error) {
 	var reqs []FriendRequest
 
@@ -66,6 +70,7 @@ func (r *repository) FindPendingRequestsByToUser(toUserID uint) ([]FriendRequest
 
 }
 
+// 更新申请状态
 func (r *repository) UpdateRequestStatus(id uint, status int) error {
 
 	now := time.Now()
@@ -76,10 +81,12 @@ func (r *repository) UpdateRequestStatus(id uint, status int) error {
 
 }
 
+// 创建好友关系
 func (r *repository) CreateFriendship(friendship *Friendship) error {
 	return r.db.Create(friendship).Error
 }
 
+// 查询2个用户是否是好友
 func (r *repository) FindFriendship(userID, friendID uint) (*Friendship, error) {
 	var friendship Friendship
 
@@ -96,6 +103,7 @@ func (r *repository) FindFriendship(userID, friendID uint) (*Friendship, error) 
 
 }
 
+// 查询某用户的所有好友关系
 func (r *repository) FindFriendsByUserID(userID uint) ([]Friendship, error) {
 	var friendships []Friendship
 
@@ -103,6 +111,7 @@ func (r *repository) FindFriendsByUserID(userID uint) ([]Friendship, error) {
 	return friendships, err
 }
 
+// 删除好友关系
 func (r *repository) DeleteFriendship(userID, friendID uint) error {
 	return r.db.Where(
 		"(user_id = ? and friend_id = ?) or (user_id = ? and friend_id = ?)",
