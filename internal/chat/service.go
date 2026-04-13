@@ -3,6 +3,7 @@ package chat
 import (
 	"errors"
 	"go-chat/internal/friend"
+	"time"
 )
 
 type Service struct {
@@ -26,6 +27,9 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
 	// if err != nil {
 	// 	return errors.New("不是好友,无法发送消息")
 	// }
+
+	//模拟io延迟5ms，仅测试
+	time.Sleep(5 * time.Millisecond)
 
 	//存储信息
 	msg := &Message{
