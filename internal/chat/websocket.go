@@ -1,0 +1,197 @@
+package chat
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
+)
+
+const (
+	//允许无消息最大时间
+	pongWait = 60 * time.Second
+	//ping时间间隔
+	pingPeriod = (pongWait * 9) / 10
+	//写入超时时间
+	writeWait = 10 * time.Second
+)
+
+// http升级为websocket
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// client表示一个websocket连接
+type Client struct {
+	UserID  uint
+	Conn    *websocket.Conn
+	Send    chan []byte
+	Hub     *Hub
+	Service *Service
+}
+
+// Hub管理所有在线连接
+type Hub struct {
+	Clients    map[uint]*Client
+	Register   chan *Client
+	Unregister chan *Client
+	Broadcast  chan *WSMessage
+	mu         sync.RWMutex
+}
+
+// Message消息结构体
+type WSMessage struct {
+	Type     string `json:"type"` //chat,heartbeat,ack
+	ToUserID uint   `json:"to_user_id"`
+	Content  string `json:"content"`
+}
+
+// 创建hub
+func NewHub() *Hub {
+	return &Hub{
+		Clients:    make(map[uint]*Client),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
+		Broadcast:  make(chan *WSMessage),
+	}
+}
+
+// 启动hub主循环
+func (h *Hub) Run() {
+	for {
+		select {
+		case client := <-h.Register:
+			h.mu.Lock()
+			h.Clients[client.UserID] = client
+			h.mu.Unlock()
+			log.Printf("用户 %d 上线,当前在线：%d", client.UserID, len(h.Clients))
+
+		case client := <-h.Unregister:
+			h.mu.Lock()
+			if _, ok := h.Clients[client.UserID]; ok {
+				delete(h.Clients, client.UserID)
+				close(client.Send)
+			}
+			h.mu.Unlock()
+			log.Printf("用户 %d 下线,当前在线：%d", client.UserID, len(h.Clients))
+
+		case msg := <-h.Broadcast:
+			h.mu.RLock()
+			if client, ok := h.Clients[msg.ToUserID]; ok {
+				msgBytes, _ := json.Marshal(msg)
+				client.Send <- msgBytes
+			}
+			h.mu.RUnlock()
+		}
+
+	}
+
+}
+
+func ServerWS(hub *Hub, service *Service, userID uint, w http.ResponseWriter, r *http.Request) {
+
+	//升级websocket
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("websocket升级失败:", err)
+		return
+	}
+
+	//创建client
+	client := &Client{
+		UserID:  userID,
+		Conn:    conn,
+		Send:    make(chan []byte, 256),
+		Hub:     hub,
+		Service: service,
+	}
+
+	//注册到hub
+	hub.Register <- client
+
+	//读写协程
+	go client.ReadPump()
+	go client.WritePump()
+}
+
+func (c *Client) ReadPump() {
+	defer func() {
+		c.Hub.Unregister <- c
+		c.Conn.Close()
+	}()
+
+	//初始时间
+	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+
+	//pong处理器
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		_, data, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("用户 %d 连接异常关闭：%v", c.UserID, err)
+			}
+			break
+		}
+
+		var wsMsg WSMessage
+		if err := json.Unmarshal(data, &wsMsg); err != nil {
+			continue
+		}
+
+		switch wsMsg.Type {
+		case "chat":
+			err := c.Service.SendMessage(c.UserID, wsMsg.ToUserID, wsMsg.Content)
+			if err != nil {
+				c.Send <- []byte(`{"type":"error","content":"` + err.Error() + `"}`)
+				continue
+			}
+		case "heartbeat":
+
+			c.Send <- []byte(`{"type":"heartbeat"}`)
+		}
+
+	}
+
+}
+
+func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
+
+	for {
+		select {
+		case msg, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			if err := c.Conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+
+		}
+
+	}
+
+}

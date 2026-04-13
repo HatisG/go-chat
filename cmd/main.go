@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go-chat/internal/chat"
 	"go-chat/internal/config"
 	"go-chat/internal/friend"
 	"go-chat/internal/middleware"
@@ -30,9 +31,12 @@ func main() {
 	friendService := friend.NewService(friendRepo)
 	friendHandler := friend.NewHandler(friendService)
 
+	chat.Init(friendRepo)
+
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)
 	friend.RegisterRountes(api, friendHandler)
+	chat.RegisterRoutes(api)
 
 	authApi := r.Group("/api/v1")
 	authApi.Use(middleware.Auth())

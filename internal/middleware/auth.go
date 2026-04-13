@@ -12,22 +12,28 @@ import (
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var tokenString string
 
+		//先从header获取
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		//header没有就从url获取
+		if tokenString == "" {
+			tokenString = c.Query("token")
+		}
+
+		if tokenString == "" {
 			response.Error(c, errcode.Unauthorized)
 			c.Abort()
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			response.Error(c, errcode.Unauthorized)
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		claims, err := jwt.ParseToken(tokenString, config.AppConfig.JWT.Secret)
 		if err != nil {
 			response.Error(c, errcode.Unauthorized)
@@ -38,7 +44,6 @@ func Auth() gin.HandlerFunc {
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Next()
-
 	}
 
 }
