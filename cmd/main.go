@@ -18,7 +18,10 @@ func main() {
 	cfg := config.AppConfig
 
 	config.InitDB()
-	config.DB.AutoMigrate(&user.User{}, &friend.Friendship{}, &friend.FriendRequest{})
+	config.DB.AutoMigrate(&user.User{},
+		&friend.Friendship{},
+		&friend.FriendRequest{},
+		&chat.Message{})
 
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()
@@ -31,7 +34,8 @@ func main() {
 	friendService := friend.NewService(friendRepo)
 	friendHandler := friend.NewHandler(friendService)
 
-	chat.Init(friendRepo)
+	chatRepo := chat.NewRepository(config.DB)
+	chat.Init(friendRepo, chatRepo)
 
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)

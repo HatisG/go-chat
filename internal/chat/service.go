@@ -11,10 +11,11 @@ type Service struct {
 	messageRepo Repository
 }
 
-func NewService(hub *Hub, friendRepo friend.Repository) *Service {
+func NewService(hub *Hub, friendRepo friend.Repository, messageRepo Repository) *Service {
 	return &Service{
-		hub:        hub,
-		friendRepo: friendRepo,
+		hub:         hub,
+		friendRepo:  friendRepo,
+		messageRepo: messageRepo,
 	}
 }
 
@@ -26,6 +27,16 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
 	}
 
 	//存储信息
+	msg := &Message{
+		FromUserID: fromUserID,
+		ToUserID:   toUserID,
+		Content:    content,
+		MsgType:    "text",
+		IsRead:     false,
+	}
+	if err := s.messageRepo.Create(msg); err != nil {
+		return errors.New("消息存储失败")
+	}
 
 	//处理离线消息
 

@@ -11,9 +11,9 @@ var (
 	service *Service
 )
 
-func Init(friendRepo friend.Repository) {
+func Init(friendRepo friend.Repository, messageRepo Repository) {
 	hub = NewHub()
-	service = NewService(hub, friendRepo)
+	service = NewService(hub, friendRepo, messageRepo)
 	go hub.Run()
 }
 
