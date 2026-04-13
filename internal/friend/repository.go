@@ -121,6 +121,7 @@ func (r *repository) DeleteFriendship(userID, friendID uint) error {
 
 }
 
+// id查找好友（详细）
 func (r *repository) FindFriendInfoByUserID(userID uint) ([]FriendInfo, error) {
 
 	friendships, err := r.FindFriendsByUserID(userID)

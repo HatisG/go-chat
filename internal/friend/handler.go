@@ -17,6 +17,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// 发送好友申请
 func (h *Handler) SendRequest(c *gin.Context) {
 	var req struct {
 		ToUserID uint   `json:"to_user_id" binding:"required"`
@@ -40,6 +41,7 @@ func (h *Handler) SendRequest(c *gin.Context) {
 	response.Success(c, gin.H{"message": "申请已发送"})
 }
 
+// 接受申请
 func (h *Handler) AcceptRequest(c *gin.Context) {
 	requestID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -60,6 +62,7 @@ func (h *Handler) AcceptRequest(c *gin.Context) {
 
 }
 
+// 拒绝申请
 func (h *Handler) RejectRequest(c *gin.Context) {
 	requestID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -80,6 +83,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 
 }
 
+// 获取好友申请列表
 func (h *Handler) GetPendingRequests(c *gin.Context) {
 	currentUserID := c.GetUint("user_id")
 
@@ -94,6 +98,7 @@ func (h *Handler) GetPendingRequests(c *gin.Context) {
 
 }
 
+// 获取好友列表
 func (h *Handler) GetFriendList(c *gin.Context) {
 	currentUserID := c.GetUint("user_id")
 
@@ -107,6 +112,7 @@ func (h *Handler) GetFriendList(c *gin.Context) {
 	response.Success(c, friends)
 }
 
+// 删除好友
 func (h *Handler) DeleteFriend(c *gin.Context) {
 	friendID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

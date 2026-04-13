@@ -20,6 +20,7 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
+// 注册
 func (h *Handler) Register(c *gin.Context) {
 	var req Request
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,6 +42,7 @@ func (h *Handler) Register(c *gin.Context) {
 
 }
 
+// 登录
 func (h *Handler) Login(c *gin.Context) {
 	var req Request
 
