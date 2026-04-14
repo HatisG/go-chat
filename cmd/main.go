@@ -5,6 +5,7 @@ import (
 	"go-chat/internal/chat"
 	"go-chat/internal/config"
 	"go-chat/internal/friend"
+	"go-chat/internal/message"
 	"go-chat/internal/middleware"
 	"go-chat/internal/user"
 	"go-chat/pkg/response"
@@ -13,15 +14,26 @@ import (
 )
 
 func main() {
-
+	//读取配置
 	config.Load()
 	cfg := config.AppConfig
 
+	//初始化数据库
 	config.InitDB()
 	config.DB.AutoMigrate(&user.User{},
 		&friend.Friendship{},
 		&friend.FriendRequest{},
 		&chat.Message{})
+
+	//初始化消息队列
+	rabbitmqURL := fmt.Sprintf("amqp://%s:%s@%s:%d/",
+		config.AppConfig.RabbitMQ.User,
+		config.AppConfig.RabbitMQ.Password,
+		config.AppConfig.RabbitMQ.Host,
+		config.AppConfig.RabbitMQ.Port,
+	)
+	message.InitMQ(rabbitmqURL)
+	defer message.CloseMQ()
 
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()
@@ -36,6 +48,17 @@ func main() {
 
 	chatRepo := chat.NewRepository(config.DB)
 	chat.Init(friendRepo, chatRepo)
+
+	message.StartConsumer(func(msg *message.ChatMessage) error {
+		dbMsg := &chat.Message{
+			FromUserID: msg.FromUserID,
+			ToUserID:   msg.ToUserID,
+			Content:    msg.Content,
+			MsgType:    msg.MsgType,
+			IsRead:     false,
+		}
+		return chatRepo.Create(dbMsg)
+	})
 
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)
