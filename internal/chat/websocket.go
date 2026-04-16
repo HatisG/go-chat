@@ -49,7 +49,9 @@ type Hub struct {
 type WSMessage struct {
 	Type     string `json:"type"` //chat,heartbeat,ack
 	ToUserID uint   `json:"to_user_id"`
+	MsgType  string `json:"msg_type"`
 	Content  string `json:"content"`
+	FileName string `json:"file_name,omitempty"`
 }
 
 // 创建hub
@@ -159,7 +161,7 @@ func (c *Client) ReadPump() {
 
 		switch wsMsg.Type {
 		case "chat":
-			err := c.Service.SendMessage(c.UserID, wsMsg.ToUserID, wsMsg.Content)
+			err := c.Service.SendMessage(c.UserID, wsMsg.ToUserID, wsMsg.MsgType, wsMsg.Content)
 			if err != nil {
 				c.Send <- []byte(`{"type":"error","content":"` + err.Error() + `"}`)
 				continue

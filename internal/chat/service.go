@@ -22,7 +22,7 @@ func NewService(hub *Hub, friendRepo friend.Repository, messageRepo Repository) 
 	}
 }
 
-func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
+func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string) error {
 	//校验好友关系
 	//压测期间临时注释，测试全链路性能
 	// _, err := s.friendRepo.FindFriendship(fromUserID, toUserID)
@@ -38,7 +38,7 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
 		FromUserID: fromUserID,
 		ToUserID:   toUserID,
 		Content:    content,
-		MsgType:    "text",
+		MsgType:    msgType,
 	}
 	if err := message.PublishMessage(chatMsg); err != nil {
 		return errors.New("消息投递失败")
@@ -63,6 +63,7 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
 	s.hub.Broadcast <- &WSMessage{
 		Type:     "chat",
 		ToUserID: toUserID,
+		MsgType:  msgType,
 		Content:  content,
 	}
 	return nil

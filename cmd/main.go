@@ -8,6 +8,7 @@ import (
 	"go-chat/internal/friend"
 	"go-chat/internal/message"
 	"go-chat/internal/middleware"
+	"go-chat/internal/upload"
 	"go-chat/internal/user"
 	"go-chat/pkg/response"
 
@@ -59,6 +60,10 @@ func main() {
 	chatRepo := chat.NewRepository(config.DB)
 	chat.Init(friendRepo, chatRepo)
 
+	uploadHandler := upload.NewHandler()
+
+	r.Static("/uploads", "./uploads")
+
 	message.StartConsumer(func(msg *message.ChatMessage) error {
 		dbMsg := &chat.Message{
 			FromUserID: msg.FromUserID,
@@ -74,6 +79,7 @@ func main() {
 	user.RegisterRouts(api, userHandler)
 	friend.RegisterRountes(api, friendHandler)
 	chat.RegisterRoutes(api)
+	upload.RegisterRoutes(api, uploadHandler)
 
 	authApi := r.Group("/api/v1")
 	authApi.Use(middleware.Auth())
