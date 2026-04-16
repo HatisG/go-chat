@@ -2,6 +2,7 @@ package chat
 
 import (
 	"errors"
+	"go-chat/internal/cache"
 	"go-chat/internal/friend"
 	"go-chat/internal/message"
 	"time"
@@ -44,6 +45,19 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, content string) error {
 	}
 
 	//处理离线消息
+	s.hub.mu.RLock()
+	_, online := s.hub.Clients[toUserID]
+	s.hub.mu.RUnlock()
+
+	if !online {
+		offlineMsg := &cache.OfflineMessage{
+			FromUserID: fromUserID,
+			Content:    content,
+			MsgType:    "text",
+			CreatedAt:  time.Now().Unix(),
+		}
+		cache.SavrOfflineMessage(toUserID, offlineMsg)
+	}
 
 	//发送给在线用户
 	s.hub.Broadcast <- &WSMessage{

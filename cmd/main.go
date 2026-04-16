@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go-chat/internal/cache"
 	"go-chat/internal/chat"
 	"go-chat/internal/config"
 	"go-chat/internal/friend"
@@ -34,6 +35,15 @@ func main() {
 	)
 	message.InitMQ(rabbitmqURL)
 	defer message.CloseMQ()
+
+	//初始化redis
+	cache.InitRedis(
+		config.AppConfig.Redis.Host,
+		config.AppConfig.Redis.Port,
+		config.AppConfig.Redis.Password,
+		config.AppConfig.Redis.DB,
+	)
+	defer cache.CloseRedis()
 
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()

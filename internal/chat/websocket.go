@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"go-chat/internal/cache"
 	"log"
 	"net/http"
 	"sync"
@@ -55,23 +56,26 @@ type WSMessage struct {
 func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[uint]*Client),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Broadcast:  make(chan *WSMessage),
+		Register:   make(chan *Client, 100),
+		Unregister: make(chan *Client, 100),
+		Broadcast:  make(chan *WSMessage, 1000),
 	}
 }
 
 // 启动hub主循环
 func (h *Hub) Run() {
+	log.Println("Hub.Run() 启动")
 	for {
 		select {
 		case client := <-h.Register:
+			log.Printf("收到 Register: 用户 %d", client.UserID)
 			h.mu.Lock()
 			h.Clients[client.UserID] = client
 			h.mu.Unlock()
 			log.Printf("用户 %d 上线,当前在线：%d", client.UserID, len(h.Clients))
 
 		case client := <-h.Unregister:
+			log.Printf("收到 Unregister: 用户 %d", client.UserID)
 			h.mu.Lock()
 			if _, ok := h.Clients[client.UserID]; ok {
 				delete(h.Clients, client.UserID)
@@ -81,6 +85,7 @@ func (h *Hub) Run() {
 			log.Printf("用户 %d 下线,当前在线：%d", client.UserID, len(h.Clients))
 
 		case msg := <-h.Broadcast:
+			log.Printf("收到 Broadcast: To=%d", msg.ToUserID)
 			h.mu.RLock()
 			if client, ok := h.Clients[msg.ToUserID]; ok {
 				msgBytes, _ := json.Marshal(msg)
@@ -112,15 +117,19 @@ func ServerWS(hub *Hub, service *Service, userID uint, w http.ResponseWriter, r 
 	}
 
 	//注册到hub
+	log.Printf("ServeWS: 准备注册用户 %d", userID)
 	hub.Register <- client
+	log.Printf("ServeWS: 用户 %d 注册成功", userID)
 
 	//读写协程
+	go pushOfflineMessage(userID, client)
 	go client.ReadPump()
 	go client.WritePump()
 }
 
 func (c *Client) ReadPump() {
 	defer func() {
+		log.Printf("ReadPump defer 执行: 用户 %d", c.UserID)
 		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
@@ -192,6 +201,29 @@ func (c *Client) WritePump() {
 
 		}
 
+	}
+
+}
+
+// 推送离线消息
+func pushOfflineMessage(userID uint, client *Client) {
+	messages, err := cache.GetOfflineMessage(userID)
+	if err != nil || len(messages) == 0 {
+		return
+	}
+
+	log.Printf("用户 %d 上线, 推送 %d 条离线消息", userID, len(messages))
+
+	for _, msg := range messages {
+		wsMsg := WSMessage{
+			Type:     "chat",
+			ToUserID: userID,
+			Content:  msg.Content,
+		}
+		msgBytes, _ := json.Marshal(wsMsg)
+		client.Send <- msgBytes
+
+		time.Sleep(5 * time.Millisecond)
 	}
 
 }
