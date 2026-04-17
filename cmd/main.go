@@ -64,12 +64,13 @@ func main() {
 	friendHandler := friend.NewHandler(friendService)
 
 	chatRepo := chat.NewRepository(config.DB)
+	chat.Init(friendRepo, chatRepo, nil)
+
 	groupRepo := group.NewRepository(config.DB)
 	groupService := group.NewService(groupRepo, chat.GetHub())
-
-	chat.Init(friendRepo, chatRepo, groupService)
-
 	groupHandler := group.NewHandler(groupService)
+
+	chat.SetGroupService(groupService)
 
 	uploadHandler := upload.NewHandler()
 

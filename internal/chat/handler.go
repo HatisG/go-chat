@@ -26,3 +26,7 @@ func WebSocketHandler(c *gin.Context) {
 func GetHub() *Hub {
 	return hub
 }
+
+func SetGroupService(gs *group.Service) {
+	service.groupService = gs
+}

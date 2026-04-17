@@ -69,7 +69,7 @@ func (s *Service) JoinGroup(groupID, userID uint) error {
 	}
 
 	_, err = s.repo.FindMember(groupID, userID)
-	if err != nil {
+	if err == nil {
 		return errors.New("已在该群成员")
 	}
 
@@ -174,7 +174,7 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 		return err
 	}
 	for _, m := range members {
-		if m.ID == fromUserID {
+		if m.UserID == fromUserID {
 			continue
 		}
 		//在线发送，离线投到redis
