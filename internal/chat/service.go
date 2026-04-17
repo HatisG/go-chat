@@ -56,7 +56,7 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 			MsgType:    "text",
 			CreatedAt:  time.Now().Unix(),
 		}
-		cache.SavrOfflineMessage(toUserID, offlineMsg)
+		cache.SaveOfflineMessage(toUserID, offlineMsg)
 	}
 
 	//发送给在线用户
@@ -68,4 +68,11 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 	}
 	return nil
 
+}
+
+func (h *Hub) IsOnline(userID uint) bool {
+	hub.mu.RLock()
+	defer hub.mu.RUnlock()
+	_, ok := hub.Clients[userID]
+	return ok
 }

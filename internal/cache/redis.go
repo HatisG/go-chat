@@ -20,6 +20,7 @@ var ctx = context.Background()
 
 type OfflineMessage struct {
 	FromUserID uint   `json:"from_user_id"`
+	GroupID    uint   `json:"group_id,omitempty"`
 	Content    string `json:"content"`
 	MsgType    string `json:"msg_type"`
 	CreatedAt  int64  `json:"created_at"`
@@ -49,7 +50,7 @@ func CloseRedis() {
 }
 
 // 保存离线消息
-func SavrOfflineMessage(userID uint, msg *OfflineMessage) error {
+func SaveOfflineMessage(userID uint, msg *OfflineMessage) error {
 	key := fmt.Sprintf("%s%d", OfflineMsgPrefix, userID)
 
 	data, err := json.Marshal(msg)

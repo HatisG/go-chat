@@ -49,6 +49,7 @@ type Hub struct {
 type WSMessage struct {
 	Type     string `json:"type"` //chat,heartbeat,ack
 	ToUserID uint   `json:"to_user_id"`
+	GroupID  uint   `json:"group_id,omitempty"`
 	MsgType  string `json:"msg_type"`
 	Content  string `json:"content"`
 	FileName string `json:"file_name,omitempty"`
