@@ -6,6 +6,7 @@ import (
 	"go-chat/internal/chat"
 	"go-chat/internal/config"
 	"go-chat/internal/friend"
+	"go-chat/internal/group"
 	"go-chat/internal/message"
 	"go-chat/internal/middleware"
 	"go-chat/internal/upload"
@@ -22,10 +23,15 @@ func main() {
 
 	//初始化数据库
 	config.InitDB()
-	config.DB.AutoMigrate(&user.User{},
+	config.DB.AutoMigrate(
+		&user.User{},
 		&friend.Friendship{},
 		&friend.FriendRequest{},
-		&chat.Message{})
+		&chat.Message{},
+		&group.Group{},
+		&group.GroupMember{},
+		&group.GroupMessage{},
+	)
 
 	//初始化消息队列
 	rabbitmqURL := fmt.Sprintf("amqp://%s:%s@%s:%d/",
@@ -58,7 +64,12 @@ func main() {
 	friendHandler := friend.NewHandler(friendService)
 
 	chatRepo := chat.NewRepository(config.DB)
-	chat.Init(friendRepo, chatRepo)
+	groupRepo := group.NewRepository(config.DB)
+	groupService := group.NewService(groupRepo, chat.GetHub())
+
+	chat.Init(friendRepo, chatRepo, groupService)
+
+	groupHandler := group.NewHandler(groupService)
 
 	uploadHandler := upload.NewHandler()
 
@@ -80,6 +91,7 @@ func main() {
 	friend.RegisterRountes(api, friendHandler)
 	chat.RegisterRoutes(api)
 	upload.RegisterRoutes(api, uploadHandler)
+	group.RegisterRoutes(api, groupHandler)
 
 	authApi := r.Group("/api/v1")
 	authApi.Use(middleware.Auth())

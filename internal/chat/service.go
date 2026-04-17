@@ -4,21 +4,25 @@ import (
 	"errors"
 	"go-chat/internal/cache"
 	"go-chat/internal/friend"
+	"go-chat/internal/group"
+
 	"go-chat/internal/message"
 	"time"
 )
 
 type Service struct {
-	hub         *Hub
-	friendRepo  friend.Repository
-	messageRepo Repository
+	hub          *Hub
+	friendRepo   friend.Repository
+	messageRepo  Repository
+	groupService *group.Service
 }
 
-func NewService(hub *Hub, friendRepo friend.Repository, messageRepo Repository) *Service {
+func NewService(hub *Hub, friendRepo friend.Repository, messageRepo Repository, groupService *group.Service) *Service {
 	return &Service{
-		hub:         hub,
-		friendRepo:  friendRepo,
-		messageRepo: messageRepo,
+		hub:          hub,
+		friendRepo:   friendRepo,
+		messageRepo:  messageRepo,
+		groupService: groupService,
 	}
 }
 
@@ -68,6 +72,10 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 	}
 	return nil
 
+}
+
+func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content string) error {
+	return s.groupService.SendGroupMessage(groupID, fromUserID, msgType, content)
 }
 
 func (h *Hub) IsOnline(userID uint) bool {

@@ -28,12 +28,12 @@ type repository struct {
 	db *gorm.DB
 }
 
-func NewRepository(db *gorm.DB) *repository {
+func NewRepository(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
 //创建群聊
-func (r *repository) Create(group Group) error {
+func (r *repository) Create(group *Group) error {
 	return r.db.Create(group).Error
 }
 

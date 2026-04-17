@@ -3,6 +3,7 @@ package chat
 import (
 	"encoding/json"
 	"go-chat/internal/cache"
+	"go-chat/internal/group"
 	"log"
 	"net/http"
 	"sync"
@@ -167,8 +168,13 @@ func (c *Client) ReadPump() {
 				c.Send <- []byte(`{"type":"error","content":"` + err.Error() + `"}`)
 				continue
 			}
+		case "group_chat":
+			err := c.Service.SendGroupMessage(wsMsg.GroupID, c.UserID, wsMsg.MsgType, wsMsg.Content)
+			if err != nil {
+				c.Send <- []byte(`{"type":"error","content":"` + err.Error() + `"}`)
+				continue
+			}
 		case "heartbeat":
-
 			c.Send <- []byte(`{"type":"heartbeat"}`)
 		}
 
@@ -229,4 +235,21 @@ func pushOfflineMessage(userID uint, client *Client) {
 		time.Sleep(5 * time.Millisecond)
 	}
 
+}
+
+func (h *Hub) SendToUser(msg interface{}) {
+	// 类型断言，处理群消息
+	if groupMsg, ok := msg.(*group.GroupWSMessage); ok {
+		h.mu.RLock()
+		client, online := h.Clients[groupMsg.ToUserID]
+		h.mu.RUnlock()
+
+		if online {
+			msgBytes, _ := json.Marshal(groupMsg)
+			select {
+			case client.Send <- msgBytes:
+			default:
+			}
+		}
+	}
 }

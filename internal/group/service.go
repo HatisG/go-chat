@@ -3,22 +3,37 @@ package group
 import (
 	"errors"
 	"go-chat/internal/cache"
-	"go-chat/internal/chat"
 	"go-chat/internal/message"
 	"time"
 )
 
-type Service struct {
-	repo        Repository
-	hub         *chat.Hub
-	messageRepo chat.Repository
+type HubInterface interface {
+	IsOnline(userID uint) bool
+	SendToUser(msg interface{}) // 广播消息
 }
 
-func NewService(repo Repository, hub *chat.Hub, messageRepo chat.Repository) *Service {
+type GroupWSMessage struct {
+	Type     string `json:"type"`
+	ToUserID uint   `json:"to_user_id"`
+	GroupID  uint   `json:"group_id"`
+	MsgType  string `json:"msg_type"`
+	Content  string `json:"content"`
+}
+
+type Service struct {
+	repo        Repository
+	hub         HubInterface      // 依赖接口，不依赖具体实现
+	messageRepo MessageRepository // 也需要定义接口
+}
+
+type MessageRepository interface {
+	SaveGroupMessage(msg *GroupMessage) error
+}
+
+func NewService(repo Repository, hub HubInterface) *Service {
 	return &Service{
-		repo:        repo,
-		hub:         hub,
-		messageRepo: messageRepo,
+		repo: repo,
+		hub:  hub,
 	}
 }
 
@@ -146,13 +161,12 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 	message.PublishMessage(chatMsg)
 
 	//保存消息
-	groupMsg := &GroupMessage{
+	s.repo.SaveMessage(&GroupMessage{
 		GroupID:    groupID,
 		FromUserID: fromUserID,
 		Content:    content,
 		MsgType:    msgType,
-	}
-	s.repo.SaveMessage(groupMsg)
+	})
 
 	//投递消息
 	members, err := s.repo.FindMembersByGroupID(groupID)
@@ -165,13 +179,13 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 		}
 		//在线发送，离线投到redis
 		if s.hub.IsOnline(m.UserID) {
-			s.hub.Broadcast <- &chat.WSMessage{
+			s.hub.SendToUser(&GroupWSMessage{
 				Type:     "group_chat",
 				ToUserID: m.UserID,
 				GroupID:  groupID,
 				MsgType:  msgType,
 				Content:  content,
-			}
+			})
 		} else {
 			offlineMsg := cache.OfflineMessage{
 				FromUserID: fromUserID,
