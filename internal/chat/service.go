@@ -29,10 +29,10 @@ func NewService(hub *Hub, friendRepo friend.Repository, messageRepo Repository, 
 func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string) error {
 	//校验好友关系
 	//压测期间临时注释，测试全链路性能
-	// _, err := s.friendRepo.FindFriendship(fromUserID, toUserID)
-	// if err != nil {
-	// 	return errors.New("不是好友,无法发送消息")
-	// }
+	_, err := s.friendRepo.FindFriendship(fromUserID, toUserID)
+	if err != nil {
+		return errors.New("不是好友,无法发送消息")
+	}
 
 	//模拟io延迟5ms，仅测试
 	time.Sleep(5 * time.Millisecond)
