@@ -65,10 +65,11 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 
 	//发送给在线用户
 	s.hub.Broadcast <- &WSMessage{
-		Type:     "chat",
-		ToUserID: toUserID,
-		MsgType:  msgType,
-		Content:  content,
+		Type:       "chat",
+		FromUserID: fromUserID,
+		ToUserID:   toUserID,
+		MsgType:    msgType,
+		Content:    content,
 	}
 	return nil
 
