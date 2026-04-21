@@ -1,1 +1,73 @@
-go-chat
+Go-Chat 项目文档
+
+一、项目简介
+Go-Chat 是一个基于 Go 语言开发的实时聊天系统后端，支持用户注册登录、好友管理、单聊、群聊、离线消息、文件上传等核心 IM 功能。
+项目通过 WebSocket 实现实时通信，引入 RabbitMQ 进行异步解耦，使用 Redis 存储离线消息。
+
+技术栈：go、gin、gorm、mysql、redis、rabbitmq、gorilla websocket、jwt、bcrypt
+
+二、功能清单
+
+用户模块
+功能	                说明
+用户注册	              用户名唯一，密码 bcrypt 加密
+用户登录              	返回 JWT Token，有效期 24 小时
+JWT                   认证中间件	保护需要登录的接口
+获取用户信息	          根据 Token 返回当前用户信息
+
+好友模块
+功能	                说明
+发送好友申请	          校验不能加自己、不能重复申请、不能已是好友
+同意/拒绝申请	        同意后自动建立双向好友关系
+好友列表	              联查用户表，返回好友详细信息
+删除好友	              软删除，双向解除关系
+待处理申请列表	        查看收到的所有待处理申请
+
+单聊模块
+功能	                说明
+WebSocket实时通信	    基于 Gorilla WebSocket 实现
+心跳保活	              标准 Ping/Pong 帧，60s 超时自动断开
+消息持久化	            消息存入 MySQL messages 表
+离线消息	              用户不在线时存入 Redis，上线后自动推送
+多种消息类型	          支持 text / image / file
+文件上传	              支持图片/文件上传，返回访问 URL
+
+群聊模块
+功能	                说明
+创建群               	创建者自动成为群主
+加入群	                成员可主动加入
+退出群	                普通成员退出，群主退出则解散群
+群成员列表	            查询群内所有成员及角色
+我的群列表	            查询用户加入的所有群
+群消息广播            	遍历成员实时推送，发送者不收到
+离线群消息           	成员离线时存入 Redis，上线后自动推送
+
+三、API文档
+方法	  路径                              	说明	         认证
+用户模块
+POST  	/api/v1/user/register	              用户注册	        否
+POST  	/api/v1/user/login	                用户登录	        否
+GET    	/api/v1/profile	                    获取当前用户信息	是
+好友模块
+POST  	/api/v1/friend/request	            发送好友申请	    是
+POST  	/api/v1/friend/request/:id/accept	  同意申请        	是
+POST  	/api/v1/friend/request/:id/reject	  拒绝申请	        是
+GET 	  /api/v1/friend/requests	            待处理申请列表	  是
+GET   	/api/v1/friend/friends	            好友列表        	是
+DELETE	/api/v1/friend/:id                	删除好友       	是
+聊天模块
+GET	    /api/v1/chat/ws                    	WebSocket 连接	是（URL 参数传 Token）
+群聊模块
+POST   	/api/v1/group	                      创建群	          是
+POST   	/api/v1/group/:id/join	            加入群          	是
+POST   	/api/v1/group/:id/leave           	退出群          	是
+GET   	/api/v1/group/my                  	我的群列表      	是
+GET   	/api/v1/group/:id/members         	群成员列表      	是
+文件上传
+POST  	/api/v1/upload                     	上传文件        	是
+
+四、后续规划
+1、多消费者并行，批量写入mysql，群聊读写扩散混合
+2、加入消息撤回功能
+3、加入朋友圈Feed流功能
+4、加入小视频功能
