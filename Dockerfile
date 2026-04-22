@@ -6,6 +6,7 @@ WORKDIR /app
 
 # 复制依赖管理文件
 COPY go.mod go.sum ./
+#ENV GOPROXY=https://goproxy.cn,direct
 RUN go mod download
 
 # 复制项目源码
