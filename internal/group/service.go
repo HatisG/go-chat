@@ -155,24 +155,17 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 	}
 
 	//模拟io延迟，测试用
-	time.Sleep(5 * time.Millisecond)
+	//time.Sleep(5 * time.Millisecond)
 
 	//投递消息队列
 	chatMsg := &message.ChatMessage{
 		FromUserID: fromUserID,
 		ToUserID:   0,
+		GroupID:    groupID,
 		Content:    content,
 		MsgType:    msgType,
 	}
 	message.PublishMessage(chatMsg)
-
-	//保存消息
-	s.repo.SaveMessage(&GroupMessage{
-		GroupID:    groupID,
-		FromUserID: fromUserID,
-		Content:    content,
-		MsgType:    msgType,
-	})
 
 	//投递消息
 	members, err := s.repo.FindMembersByGroupID(groupID)

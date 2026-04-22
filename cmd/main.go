@@ -83,14 +83,28 @@ func main() {
 	r.Static("/uploads", "./uploads")
 
 	message.StartConsumer(func(msg *message.ChatMessage) error {
-		dbMsg := &chat.Message{
-			FromUserID: msg.FromUserID,
-			ToUserID:   msg.ToUserID,
-			Content:    msg.Content,
-			MsgType:    msg.MsgType,
-			IsRead:     false,
+		if msg.GroupID > 0 {
+			//群消息
+			groupMsg := &group.GroupMessage{
+				GroupID:    msg.GroupID,
+				FromUserID: msg.FromUserID,
+				Content:    msg.Content,
+				MsgType:    msg.MsgType,
+			}
+			return groupRepo.SaveMessage(groupMsg)
+		} else {
+			//单聊消息
+			dbMsg := &chat.Message{
+				FromUserID: msg.FromUserID,
+				ToUserID:   msg.ToUserID,
+				Content:    msg.Content,
+				MsgType:    msg.MsgType,
+				IsRead:     false,
+			}
+			return chatRepo.Create(dbMsg)
+
 		}
-		return chatRepo.Create(dbMsg)
+
 	})
 
 	api := r.Group("/api/v1")

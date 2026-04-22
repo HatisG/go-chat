@@ -12,6 +12,7 @@ import (
 type ChatMessage struct {
 	FromUserID uint   `json:"from_user_id"`
 	ToUserID   uint   `json:"to_user_id"`
+	GroupID    uint   `json:"group_id"`
 	Content    string `json:"content"`
 	MsgType    string `json:"msg_type"`
 }

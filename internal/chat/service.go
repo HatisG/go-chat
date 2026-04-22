@@ -35,7 +35,7 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 	}
 
 	//模拟io延迟5ms，仅测试
-	time.Sleep(5 * time.Millisecond)
+	//time.Sleep(5 * time.Millisecond)
 
 	//投递到rabbitmq
 	chatMsg := &message.ChatMessage{

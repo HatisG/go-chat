@@ -110,7 +110,7 @@ func (r *repository) CountMembers(groupID uint) (int64, error) {
 	return count, err
 }
 
-//发消息
+//保存消息
 func (r *repository) SaveMessage(msg *GroupMessage) error {
 	return r.db.Create(msg).Error
 }
