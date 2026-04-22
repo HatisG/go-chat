@@ -1,12 +1,13 @@
 package friend
 
 import (
+	"go-chat/internal/logger"
 	"go-chat/pkg/errcode"
 	"go-chat/pkg/response"
-	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Handler struct {
@@ -34,7 +35,7 @@ func (h *Handler) SendRequest(c *gin.Context) {
 	err := h.service.SendRequest(currentUserID, req.ToUserID, req.Msg)
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("发送申请失败", zap.Error(err))
 		return
 	}
 
@@ -54,7 +55,7 @@ func (h *Handler) AcceptRequest(c *gin.Context) {
 	err = h.service.AcceptRequest(uint(requestID), currentUserID)
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("接收申请失败", zap.Error(err))
 		return
 	}
 
@@ -75,7 +76,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 	err = h.service.RejectRequest(uint(requestID), currentUserID)
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("拒绝申请失败", zap.Error(err))
 		return
 	}
 
@@ -90,7 +91,7 @@ func (h *Handler) GetPendingRequests(c *gin.Context) {
 	reqs, err := h.service.GetPendingRequests(currentUserID)
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("获取好友申请失败", zap.Error(err))
 		return
 	}
 
@@ -105,7 +106,7 @@ func (h *Handler) GetFriendList(c *gin.Context) {
 	friends, err := h.service.GetFriendListWithInfo(currentUserID)
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("获取好友列表失败", zap.Error(err))
 		return
 	}
 
@@ -125,7 +126,7 @@ func (h *Handler) DeleteFriend(c *gin.Context) {
 	err = h.service.DeleteFriend(currentUserID, uint(friendID))
 	if err != nil {
 		response.Error(c, errcode.ServerError)
-		log.Println(err)
+		logger.Logger.Info("删除好友失败", zap.Error(err))
 		return
 	}
 

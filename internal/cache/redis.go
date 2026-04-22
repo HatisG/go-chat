@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"go-chat/internal/logger"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 const (
@@ -35,10 +36,10 @@ func InitRedis(host string, port int, password string, db int) {
 	})
 
 	if err := Client.Ping(ctx).Err(); err != nil {
-		log.Fatalf("Redis 连接失败: %v", err)
+		logger.Logger.Fatal("Redis 连接失败", zap.Error(err))
 	}
 
-	log.Println("Redis 连接成功")
+	logger.Logger.Info("Redis 连接成功")
 
 }
 

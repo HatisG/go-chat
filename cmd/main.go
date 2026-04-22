@@ -7,6 +7,7 @@ import (
 	"go-chat/internal/config"
 	"go-chat/internal/friend"
 	"go-chat/internal/group"
+	"go-chat/internal/logger"
 	"go-chat/internal/message"
 	"go-chat/internal/middleware"
 	"go-chat/internal/upload"
@@ -20,6 +21,10 @@ func main() {
 	//读取配置
 	config.Load()
 	cfg := config.AppConfig
+
+	//初始化日志
+	logger.Init(cfg.Server.Mode)
+	defer logger.Sync()
 
 	//初始化数据库
 	config.InitDB()
@@ -52,6 +57,7 @@ func main() {
 	)
 	defer cache.CloseRedis()
 
+	//启动服务
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()
 

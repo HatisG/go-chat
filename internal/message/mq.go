@@ -1,9 +1,10 @@
 package message
 
 import (
-	"log"
+	"go-chat/internal/logger"
 
 	"github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -20,13 +21,13 @@ func InitMQ(url string) {
 	//连接rabbitmq
 	Conn, err = amqp091.Dial(url)
 	if err != nil {
-		log.Fatalf("RabbitMQ连接失败: %v", err)
+		logger.Logger.Fatal("RabbitMQ连接失败", zap.Error(err))
 	}
 
 	//创建channel
 	Channel, err = Conn.Channel()
 	if err != nil {
-		log.Fatalf("RabbitMQ Channel 创建失败: %v", err)
+		logger.Logger.Fatal("RabbitMQ Channel 创建失败: ", zap.Error(err))
 	}
 
 	//声明队列
@@ -39,10 +40,10 @@ func InitMQ(url string) {
 		nil,
 	)
 	if err != nil {
-		log.Fatalf("RabbitMQ 队列声明失败: %v", err)
+		logger.Logger.Fatal("RabbitMQ 队列声明失败", zap.Error(err))
 	}
 
-	log.Println("RabbitMQ 初始化成功")
+	logger.Logger.Info("RabbitMQ 初始化成功")
 }
 
 // 关闭连接

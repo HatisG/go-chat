@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"go-chat/internal/cache"
 	"go-chat/internal/group"
-	"log"
+	"go-chat/internal/logger"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 const (
@@ -69,28 +70,28 @@ func NewHub() *Hub {
 
 // 启动hub主循环
 func (h *Hub) Run() {
-	log.Println("Hub.Run() 启动")
+	logger.Logger.Info("Hub.Run() 启动")
 	for {
 		select {
 		case client := <-h.Register:
-			log.Printf("收到 Register: 用户 %d", client.UserID)
+			logger.Logger.Info("收到 Register: 用户 ", zap.Uint("user_id", client.UserID))
 			h.mu.Lock()
 			h.Clients[client.UserID] = client
 			h.mu.Unlock()
-			log.Printf("用户 %d 上线,当前在线：%d", client.UserID, len(h.Clients))
+			logger.Logger.Info("用户上线", zap.Uint("user_id", client.UserID), zap.Int("online_count", len(h.Clients)))
 
 		case client := <-h.Unregister:
-			log.Printf("收到 Unregister: 用户 %d", client.UserID)
+			logger.Logger.Info("收到 Unregister: 用户 ", zap.Uint("user_id", client.UserID))
 			h.mu.Lock()
 			if _, ok := h.Clients[client.UserID]; ok {
 				delete(h.Clients, client.UserID)
 				close(client.Send)
 			}
 			h.mu.Unlock()
-			log.Printf("用户 %d 下线,当前在线：%d", client.UserID, len(h.Clients))
+			logger.Logger.Info("用户下线", zap.Uint("user_id", client.UserID), zap.Int("online_count", len(h.Clients)))
 
 		case msg := <-h.Broadcast:
-			log.Printf("收到 Broadcast: To=%d", msg.ToUserID)
+			logger.Logger.Info("收到 Broadcast: To=", zap.Uint("to_user_id", msg.ToUserID))
 			h.mu.RLock()
 			if client, ok := h.Clients[msg.ToUserID]; ok {
 				msgBytes, _ := json.Marshal(msg)
@@ -108,7 +109,7 @@ func ServerWS(hub *Hub, service *Service, userID uint, w http.ResponseWriter, r 
 	//升级websocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("websocket升级失败:", err)
+		logger.Logger.Info("websocket升级失败:", zap.Error(err))
 		return
 	}
 
@@ -122,9 +123,9 @@ func ServerWS(hub *Hub, service *Service, userID uint, w http.ResponseWriter, r 
 	}
 
 	//注册到hub
-	log.Printf("ServeWS: 准备注册用户 %d", userID)
+	logger.Logger.Info("ServeWS: 准备注册用户 ", zap.Uint("user_id", userID))
 	hub.Register <- client
-	log.Printf("ServeWS: 用户 %d 注册成功", userID)
+	logger.Logger.Info("ServeWS: 注册成功 ", zap.Uint("user_id", userID))
 
 	//读写协程
 	go pushOfflineMessage(userID, client)
@@ -134,7 +135,7 @@ func ServerWS(hub *Hub, service *Service, userID uint, w http.ResponseWriter, r 
 
 func (c *Client) ReadPump() {
 	defer func() {
-		log.Printf("ReadPump defer 执行: 用户 %d", c.UserID)
+		logger.Logger.Info("ReadPump defer 执行: 用户 ", zap.Uint("user_id", c.UserID))
 		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
@@ -152,7 +153,7 @@ func (c *Client) ReadPump() {
 		_, data, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("用户 %d 连接异常关闭：%v", c.UserID, err)
+				logger.Logger.Info("用户连接异常关闭", zap.Uint("user_id", c.UserID), zap.Error(err))
 			}
 			break
 		}
@@ -222,7 +223,7 @@ func pushOfflineMessage(userID uint, client *Client) {
 		return
 	}
 
-	log.Printf("用户 %d 上线, 推送 %d 条离线消息", userID, len(messages))
+	logger.Logger.Info("用户上线, 推送离线消息", zap.Uint("user_id", userID), zap.Int("message_count", len(messages)))
 
 	for _, msg := range messages {
 		wsMsg := WSMessage{

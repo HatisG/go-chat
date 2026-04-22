@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
-	"log"
+	"go-chat/internal/logger"
+	"time"
 
+	"go.uber.org/zap"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -23,8 +25,12 @@ func InitDB() {
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("数据库连接失败: %v", err)
+		logger.Logger.Fatal("数据库连接失败: ", zap.Error(err))
 	}
 
-	log.Println("数据库连接成功")
+	sqlDB, _ := DB.DB()
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+
+	logger.Logger.Info("数据库连接成功")
+
 }

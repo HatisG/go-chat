@@ -2,9 +2,10 @@ package message
 
 import (
 	"encoding/json"
-	"log"
+	"go-chat/internal/logger"
 
 	"github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 )
 
 // ChatMessage 消息结构体（用于 MQ 传输）
@@ -39,7 +40,7 @@ func PublishMessage(msg *ChatMessage) error {
 		return err
 	}
 
-	log.Printf("producer 消息已投递: from=%d to=%d", msg.FromUserID, msg.ToUserID)
+	logger.Logger.Info("producer 消息已投递", zap.Uint("from_user_id", msg.FromUserID), zap.Uint("to_user_id", msg.ToUserID))
 
 	return nil
 }

@@ -37,6 +37,7 @@ func NewService(repo Repository, hub HubInterface) *Service {
 	}
 }
 
+// 创建群组
 func (s *Service) CreateGroup(creatorID uint, name string) (*Group, error) {
 	group := &Group{
 		Name:      name,
@@ -61,6 +62,7 @@ func (s *Service) CreateGroup(creatorID uint, name string) (*Group, error) {
 
 }
 
+// 加入群
 func (s *Service) JoinGroup(groupID, userID uint) error {
 
 	_, err := s.repo.FindByID(groupID)
@@ -83,6 +85,7 @@ func (s *Service) JoinGroup(groupID, userID uint) error {
 
 }
 
+// 离开群
 func (s *Service) LeaveGroup(groupID, userID uint) error {
 
 	member, err := s.repo.FindMember(groupID, userID)
@@ -98,6 +101,7 @@ func (s *Service) LeaveGroup(groupID, userID uint) error {
 	return s.repo.RemoveMember(groupID, userID)
 }
 
+// 获取群组
 func (s *Service) GetMyGroups(userID uint) ([]GroupInfo, error) {
 	groups, err := s.repo.FindGroupsByUserID(userID)
 	if err != nil {
@@ -121,6 +125,7 @@ func (s *Service) GetMyGroups(userID uint) ([]GroupInfo, error) {
 	return result, nil
 }
 
+// 获取群成员
 func (s *Service) GetGroupMembers(groupID uint) ([]MemberInfo, error) {
 	members, err := s.repo.FindMembersByGroupID(groupID)
 	if err != nil {
@@ -141,6 +146,7 @@ func (s *Service) GetGroupMembers(groupID uint) ([]MemberInfo, error) {
 	return result, nil
 }
 
+// 发送群消息
 func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content string) error {
 
 	_, err := s.repo.FindMember(groupID, fromUserID)

@@ -2,10 +2,10 @@ package upload
 
 import (
 	"fmt"
+	"go-chat/internal/logger"
 	"go-chat/pkg/errcode"
 	"go-chat/pkg/response"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-uuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -25,7 +26,7 @@ type Handler struct{}
 
 func NewHandler() *Handler {
 	if err := os.MkdirAll(UploadDir, 0755); err != nil {
-		log.Fatalf("创建上传目录失败: %v", err)
+		logger.Logger.Fatal("创建上传目录失败", zap.Error(err))
 	}
 	return &Handler{}
 }
