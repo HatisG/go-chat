@@ -9,7 +9,6 @@ import (
 	"go-chat/internal/group"
 	"go-chat/internal/logger"
 	"go-chat/internal/message"
-	"go-chat/internal/middleware"
 	"go-chat/internal/upload"
 	"go-chat/internal/user"
 	"go-chat/pkg/response"
@@ -82,30 +81,33 @@ func main() {
 
 	r.Static("/uploads", "./uploads")
 
-	message.StartConsumer(func(msg *message.ChatMessage) error {
-		if msg.GroupID > 0 {
-			//群消息
-			groupMsg := &group.GroupMessage{
-				GroupID:    msg.GroupID,
-				FromUserID: msg.FromUserID,
-				Content:    msg.Content,
-				MsgType:    msg.MsgType,
-			}
-			return groupRepo.SaveMessage(groupMsg)
-		} else {
-			//单聊消息
-			dbMsg := &chat.Message{
-				FromUserID: msg.FromUserID,
-				ToUserID:   msg.ToUserID,
-				Content:    msg.Content,
-				MsgType:    msg.MsgType,
-				IsRead:     false,
-			}
-			return chatRepo.Create(dbMsg)
+	//消费者并发
+	for i := 0; i < 3; i++ {
+		go message.StartConsumer(func(msg *message.ChatMessage) error {
+			if msg.GroupID > 0 {
+				//群消息
+				groupMsg := &group.GroupMessage{
+					GroupID:    msg.GroupID,
+					FromUserID: msg.FromUserID,
+					Content:    msg.Content,
+					MsgType:    msg.MsgType,
+				}
+				return groupRepo.SaveMessage(groupMsg)
+			} else {
+				//单聊消息
+				dbMsg := &chat.Message{
+					FromUserID: msg.FromUserID,
+					ToUserID:   msg.ToUserID,
+					Content:    msg.Content,
+					MsgType:    msg.MsgType,
+					IsRead:     false,
+				}
+				return chatRepo.Create(dbMsg)
 
-		}
+			}
 
-	})
+		})
+	}
 
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)
@@ -113,19 +115,6 @@ func main() {
 	chat.RegisterRoutes(api)
 	upload.RegisterRoutes(api, uploadHandler)
 	group.RegisterRoutes(api, groupHandler)
-
-	authApi := r.Group("/api/v1")
-	authApi.Use(middleware.Auth())
-	{
-		authApi.GET("/profile", func(c *gin.Context) {
-			userID, _ := c.Get("user_id")
-			username, _ := c.Get("username")
-			response.Success(c, gin.H{
-				"user_id":  userID,
-				"username": username,
-			})
-		})
-	}
 
 	r.GET("/ping", func(ctx *gin.Context) {
 		response.Success(ctx, gin.H{"message": "pong"})
