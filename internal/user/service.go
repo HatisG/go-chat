@@ -67,3 +67,43 @@ func (s *Service) Login(username, password string) (*User, string, error) {
 
 	return user, token, nil
 }
+
+// 更新用户资料
+func (s *Service) UpdateProfile(userID uint, nickname string) error {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	user.Nickname = nickname
+	return s.repo.Update(user)
+}
+
+// 更新用户头像
+func (s *Service) UpdateAvatar(userID uint, avatar string) error {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	user.Avatar = avatar
+	return s.repo.Update(user)
+}
+
+// 修改密码
+func (s *Service) ChangePassword(userID uint, oldPassword, newPassword string) error {
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+
+	//验证旧密码
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	if err != nil {
+		return errors.New("旧密码错误")
+	}
+	//加密新密码
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("密码加密失败")
+	}
+	return s.repo.UpdatePassword(userID, string(hashedPwd))
+}

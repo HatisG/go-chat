@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # 编译二进制文件，关闭CGO并静态链接，以适配Alpine环境
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-chat ./cmd/chat/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o go-chat ./cmd/main.go
 
 # 阶段二：运行阶段
 FROM alpine:latest

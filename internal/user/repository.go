@@ -8,6 +8,7 @@ type Repository interface {
 	FindByID(id uint) (*User, error)
 	Update(user *User) error
 	Delete(id uint) error
+	UpdatePassword(userID uint, newPassword string) error
 }
 
 type repository struct {
@@ -51,4 +52,10 @@ func (r *repository) Update(user *User) error {
 //删除
 func (r *repository) Delete(id uint) error {
 	return r.db.Delete(&User{}, id).Error
+}
+
+//更新密码
+func (r *repository) UpdatePassword(userID uint, newPassword string) error {
+	return r.db.Model(&User{}).Where("id = ?", userID).Update("password", newPassword).Error
+
 }
