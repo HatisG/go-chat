@@ -15,6 +15,9 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		groupRoute.POST("/:id/leave", handler.LeaveGroup)       // 退出群
 		groupRoute.GET("/my", handler.GetMyGroups)              // 我的群列表
 		groupRoute.GET("/:id/members", handler.GetGroupMembers) // 群成员
+		//群聊已读
+		groupRoute.POST("/read", handler.MarkGroupRead)
+		groupRoute.GET("/unread", handler.GetAllGroupUnread)
 	}
 
 }

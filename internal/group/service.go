@@ -195,7 +195,19 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 			}
 			cache.SaveOfflineMessage(m.UserID, &offlineMsg)
 		}
+		//给每个群成员增加未读数
+		s.repo.IncrGroupUnread(m.UserID, groupID)
 
 	}
 	return nil
+}
+
+// MarkGroupChatRead 标记群聊已读
+func (s *Service) MarkGroupChatRead(userID, groupID uint) error {
+	return s.repo.ClearGroupUnread(userID, groupID)
+}
+
+// GetAllGroupUnread 获取所有群未读数
+func (s *Service) GetAllGroupUnread(userID uint) ([]UnreadCount, error) {
+	return s.repo.GetAllUnreadCounts(userID)
 }

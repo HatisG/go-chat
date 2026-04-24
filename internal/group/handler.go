@@ -109,3 +109,37 @@ func (h *Handler) GetGroupMembers(c *gin.Context) {
 
 	response.Success(c, members)
 }
+
+// 标记群聊已读
+func (h *Handler) MarkGroupRead(c *gin.Context) {
+	var req struct {
+		GroupID uint `json:"group_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, errcode.InvalidParams)
+		return
+	}
+
+	userID := c.GetUint("user_id")
+
+	if err := h.service.MarkGroupChatRead(userID, req.GroupID); err != nil {
+		response.Error(c, errcode.ServerError)
+		return
+	}
+
+	response.Success(c, gin.H{"message": "已标记已读"})
+}
+
+// 获取所有群未读数
+func (h *Handler) GetAllGroupUnread(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	counts, err := h.service.GetAllGroupUnread(userID)
+	if err != nil {
+		response.Error(c, errcode.ServerError)
+		return
+	}
+
+	response.Success(c, counts)
+}

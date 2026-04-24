@@ -35,6 +35,8 @@ func main() {
 		&group.Group{},
 		&group.GroupMember{},
 		&group.GroupMessage{},
+		&group.UnreadCount{},
+		&chat.ReadCursor{},
 	)
 
 	//初始化消息队列
@@ -69,7 +71,7 @@ func main() {
 	friendHandler := friend.NewHandler(friendService)
 
 	chatRepo := chat.NewRepository(config.DB)
-	chat.Init(friendRepo, chatRepo, nil)
+	chatHandler := chat.Init(friendRepo, chatRepo, nil)
 
 	groupRepo := group.NewRepository(config.DB)
 	groupService := group.NewService(groupRepo, chat.GetHub())
@@ -112,7 +114,7 @@ func main() {
 	api := r.Group("/api/v1")
 	user.RegisterRouts(api, userHandler)
 	friend.RegisterRountes(api, friendHandler)
-	chat.RegisterRoutes(api)
+	chat.RegisterRoutes(api, chatHandler)
 	upload.RegisterRoutes(api, uploadHandler)
 	group.RegisterRoutes(api, groupHandler)
 

@@ -24,6 +24,13 @@ type GroupMessage struct {
 	MsgType    string `gorm:"size:20;default:'text'"`
 }
 
+type UnreadCount struct {
+	gorm.Model
+	UserID      uint `gorm:"not null;uniqueIndex:uk_user_group"`
+	GroupID     uint `gorm:"not null;uniqueIndex:uk_user_group"`
+	UnreadCount int  `gorm:"default:0"`
+}
+
 const (
 	RoleMember = 0
 	RoleAdmin  = 1

@@ -15,3 +15,10 @@ type Message struct {
 	IsRead     bool   `gorm:"default:false"`
 	ReadAt     *time.Time
 }
+
+type ReadCursor struct {
+	gorm.Model
+	UserID        uint `gorm:"not null;uniqueIndex:uk_user_peer"`
+	PeerID        uint `gorm:"not null;uniqueIndex:uk_user_peer"`
+	LastReadMsgID uint `gorm:"default:0"`
+}

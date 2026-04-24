@@ -75,13 +75,25 @@ func (s *Service) SendMessage(fromUserID, toUserID uint, msgType, content string
 
 }
 
+// 发送群消息
 func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content string) error {
 	return s.groupService.SendGroupMessage(groupID, fromUserID, msgType, content)
 }
 
+// 是否在线
 func (h *Hub) IsOnline(userID uint) bool {
 	hub.mu.RLock()
 	defer hub.mu.RUnlock()
 	_, ok := hub.Clients[userID]
 	return ok
+}
+
+// MarkSingleChatRead 标记单聊已读
+func (s *Service) MarkSingleChatRead(userID, peerID, lastMsgID uint) error {
+	return s.messageRepo.UpdateReadCursor(userID, peerID, lastMsgID)
+}
+
+// GetSingleChatUnread 获取单聊未读数
+func (s *Service) GetSingleChatUnread(userID, peerID uint) (int64, error) {
+	return s.messageRepo.GetUnreadCount(userID, peerID)
 }
