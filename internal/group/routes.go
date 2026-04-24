@@ -18,6 +18,8 @@ func RegisterRoutes(r *gin.RouterGroup, handler *Handler) {
 		//群聊已读
 		groupRoute.POST("/read", handler.MarkGroupRead)
 		groupRoute.GET("/unread", handler.GetAllGroupUnread)
+
+		groupRoute.GET("/:id/messages", handler.GetMessages)
 	}
 
 }

@@ -23,9 +23,9 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-func Init(friendRepo friend.Repository, messageRepo Repository, groupService *group.Service) *Handler {
+func Init(friendRepo friend.Repository, messageRepo Repository, groupService *group.Service, groupRepo group.Repository) *Handler {
 	hub = NewHub()
-	service = NewService(hub, friendRepo, messageRepo, groupService)
+	service = NewService(hub, friendRepo, messageRepo, groupService, groupRepo)
 	go hub.Run()
 	return NewHandler(service)
 }
@@ -82,4 +82,42 @@ func (h *Handler) GetSingleUnread(c *gin.Context) {
 	}
 
 	response.Success(c, gin.H{"unread_count": count})
+}
+
+// 获取会话列表
+func (h *Handler) GetConversations(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	conversations, err := h.service.GetConversations(userID)
+	if err != nil {
+		response.Error(c, errcode.ServerError)
+		return
+	}
+
+	response.Success(c, conversations)
+}
+
+// GetMessages 获取单聊历史消息（游标分页）
+func (h *Handler) GetMessages(c *gin.Context) {
+	peerID, _ := strconv.ParseUint(c.Query("peer_id"), 10, 32)
+	cursor, _ := strconv.ParseUint(c.Query("cursor"), 10, 32)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	userID := c.GetUint("user_id")
+
+	messages, err := h.service.GetConversationMessages(userID, uint(peerID), uint(cursor), limit)
+	if err != nil {
+		response.Error(c, errcode.ServerError)
+		return
+	}
+
+	hasMore := len(messages) > limit
+	if hasMore {
+		messages = messages[:limit]
+	}
+
+	response.Success(c, gin.H{
+		"messages": messages,
+		"has_more": hasMore,
+	})
 }

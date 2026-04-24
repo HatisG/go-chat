@@ -17,6 +17,8 @@ type Repository interface {
 	UpdateReadCursor(userID, peerID, lastMsgID uint) error
 	GetUnreadCount(userID, peerID uint) (int64, error)
 	IsMessageRead(msgID, userID, peerID uint) (bool, error)
+
+	GetConversations(userID uint) ([]Conversation, error)
 }
 
 type repository struct {
@@ -114,4 +116,44 @@ func (r *repository) IsMessageRead(msgID, userID, peerID uint) (bool, error) {
 		return false, nil // 对方还没打开过会话
 	}
 	return msgID <= cursor.LastReadMsgID, nil
+}
+
+// 获取会话列表
+func (r *repository) GetConversations(userID uint) ([]Conversation, error) {
+	var conversations []Conversation
+
+	// 单聊会话 - 查询所有聊过天的对方
+	r.db.Raw(`
+        SELECT 
+            CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END AS peer_id,
+            u.nickname AS peer_name,
+            u.avatar,
+            0 AS conv_type,
+            m.content AS last_msg,
+            m.created_at AS last_time
+        FROM messages m
+        JOIN users u ON u.id = CASE WHEN m.from_user_id = ? THEN m.to_user_id ELSE m.from_user_id END
+        WHERE (m.from_user_id = ? OR m.to_user_id = ?)
+        ORDER BY m.created_at DESC
+        LIMIT 1
+    `, userID, userID, userID, userID).Scan(&conversations)
+
+	// 群聊会话
+	r.db.Raw(`
+        SELECT 
+            gm.group_id AS peer_id,
+            g.name AS peer_name,
+            g.avatar,
+            1 AS conv_type,
+            gm.content AS last_msg,
+            gm.created_at AS last_time
+        FROM group_messages gm
+        JOIN group_members gmbr ON gm.group_id = gmbr.group_id
+        JOIN `+"`groups`"+` g ON g.id = gm.group_id
+        WHERE gmbr.user_id = ?
+        ORDER BY gm.created_at DESC
+        LIMIT 1
+    `, userID).Scan(&conversations)
+
+	return conversations, nil
 }

@@ -143,3 +143,26 @@ func (h *Handler) GetAllGroupUnread(c *gin.Context) {
 
 	response.Success(c, counts)
 }
+
+// GetMessages 获取群聊历史消息
+func (h *Handler) GetMessages(c *gin.Context) {
+	groupID, _ := strconv.ParseUint(c.Param("id"), 10, 32)
+	cursor, _ := strconv.ParseUint(c.Query("cursor"), 10, 32)
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	messages, err := h.service.GetGroupMessages(uint(groupID), uint(cursor), limit)
+	if err != nil {
+		response.Error(c, errcode.ServerError)
+		return
+	}
+
+	hasMore := len(messages) > limit
+	if hasMore {
+		messages = messages[:limit]
+	}
+
+	response.Success(c, gin.H{
+		"messages": messages,
+		"has_more": hasMore,
+	})
+}

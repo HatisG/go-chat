@@ -211,3 +211,8 @@ func (s *Service) MarkGroupChatRead(userID, groupID uint) error {
 func (s *Service) GetAllGroupUnread(userID uint) ([]UnreadCount, error) {
 	return s.repo.GetAllUnreadCounts(userID)
 }
+
+// GetGroupMessages 获取群聊历史消息
+func (s *Service) GetGroupMessages(groupID, cursor uint, limit int) ([]GroupMessage, error) {
+	return s.repo.FindMessagesByGroupID(groupID, limit+1, 0)
+}

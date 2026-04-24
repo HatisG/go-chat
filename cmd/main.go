@@ -71,11 +71,11 @@ func main() {
 	friendHandler := friend.NewHandler(friendService)
 
 	chatRepo := chat.NewRepository(config.DB)
-	chatHandler := chat.Init(friendRepo, chatRepo, nil)
-
 	groupRepo := group.NewRepository(config.DB)
 	groupService := group.NewService(groupRepo, chat.GetHub())
 	groupHandler := group.NewHandler(groupService)
+
+	chatHandler := chat.Init(friendRepo, chatRepo, groupService, groupRepo)
 
 	chat.SetGroupService(groupService)
 
