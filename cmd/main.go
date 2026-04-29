@@ -9,6 +9,7 @@ import (
 	"go-chat/internal/group"
 	"go-chat/internal/logger"
 	"go-chat/internal/message"
+	"go-chat/internal/middleware"
 	"go-chat/internal/upload"
 	"go-chat/internal/user"
 	"go-chat/pkg/response"
@@ -61,6 +62,7 @@ func main() {
 	//启动服务
 	gin.SetMode(cfg.Server.Mode)
 	r := gin.Default()
+	r.Use(middleware.CORSMiddleware())
 
 	userRepo := user.NewRepository(config.DB)
 	userService := user.NewService(userRepo)
@@ -72,10 +74,11 @@ func main() {
 
 	chatRepo := chat.NewRepository(config.DB)
 	groupRepo := group.NewRepository(config.DB)
+
+	chatHandler := chat.Init(friendRepo, chatRepo, nil, groupRepo)
+
 	groupService := group.NewService(groupRepo, chat.GetHub())
 	groupHandler := group.NewHandler(groupService)
-
-	chatHandler := chat.Init(friendRepo, chatRepo, groupService, groupRepo)
 
 	chat.SetGroupService(groupService)
 

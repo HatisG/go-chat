@@ -32,7 +32,7 @@ func (h *Handler) Register(c *gin.Context) {
 
 	user, err := h.service.Register(req.Username, req.Password)
 	if err != nil {
-		response.Error(c, errcode.UserAlreadyExists)
+		response.ErrorWithMsg(c, errcode.UserAlreadyExists, err.Error())
 		return
 	}
 
@@ -55,7 +55,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	user, token, err := h.service.Login(req.Username, req.Password)
 	if err != nil {
-		response.Error(c, errcode.Unauthorized)
+		response.ErrorWithMsg(c, errcode.Unauthorized, err.Error())
 		return
 	}
 

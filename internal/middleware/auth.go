@@ -28,7 +28,7 @@ func Auth() gin.HandlerFunc {
 			tokenString = c.Query("token")
 		}
 
-		if tokenString == "" {
+		if tokenString == "" || tokenString == "null" {
 			response.Error(c, errcode.Unauthorized)
 			c.Abort()
 			return

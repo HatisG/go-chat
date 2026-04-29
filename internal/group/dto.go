@@ -23,3 +23,13 @@ type MemberInfo struct {
 	Avatar   string `json:"avatar"`
 	Role     int    `json:"role"`
 }
+
+type GroupMessageResp struct {
+	ID           uint   `json:"id"`
+	GroupID      uint   `json:"group_id"`
+	FromUserID   uint   `json:"from_user_id"`
+	FromUserName string `json:"from_user_name"`
+	Content      string `json:"content"`
+	MsgType      string `json:"msg_type"`
+	CreatedAt    uint   `json:"created_at"`
+}

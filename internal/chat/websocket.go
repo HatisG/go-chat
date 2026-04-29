@@ -232,6 +232,10 @@ func pushOfflineMessage(userID uint, client *Client) {
 			ToUserID:   userID,
 			Content:    msg.Content,
 		}
+		if msg.GroupID > 0 {
+			wsMsg.Type = "group_chat"
+			wsMsg.GroupID = msg.GroupID
+		}
 		msgBytes, _ := json.Marshal(wsMsg)
 		client.Send <- msgBytes
 

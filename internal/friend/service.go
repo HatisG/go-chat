@@ -58,8 +58,8 @@ func (s *Service) AcceptRequest(requestID, currentUserID uint) error {
 	}
 
 	friendship := &Friendship{
-		UserID:   req.FromUserID,
-		FriendID: req.ToUserID,
+		UserID:   req.ToUserID,
+		FriendID: req.FromUserID,
 		Status:   1,
 	}
 

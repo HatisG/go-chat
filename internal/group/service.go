@@ -3,7 +3,9 @@ package group
 import (
 	"errors"
 	"go-chat/internal/cache"
+	"go-chat/internal/config"
 	"go-chat/internal/message"
+	"go-chat/internal/user"
 	"time"
 )
 
@@ -13,11 +15,13 @@ type HubInterface interface {
 }
 
 type GroupWSMessage struct {
-	Type     string `json:"type"`
-	ToUserID uint   `json:"to_user_id"`
-	GroupID  uint   `json:"group_id"`
-	MsgType  string `json:"msg_type"`
-	Content  string `json:"content"`
+	Type         string `json:"type"`
+	ToUserID     uint   `json:"to_user_id"`
+	GroupID      uint   `json:"group_id"`
+	FromUserID   uint   `json:"from_user_id"`
+	FromUserName string `json:"from_user_name"`
+	MsgType      string `json:"msg_type"`
+	Content      string `json:"content"`
 }
 
 type Service struct {
@@ -136,9 +140,13 @@ func (s *Service) GetGroupMembers(groupID uint) ([]MemberInfo, error) {
 
 	for _, m := range members {
 
+		memberInfo, _ := s.getMemberInfo(m.UserID) // 需要新增辅助方法
 		result = append(result, MemberInfo{
-			UserID: m.UserID,
-			Role:   m.Role,
+			UserID:   m.UserID,
+			Username: memberInfo.Username,
+			Nickname: memberInfo.Nickname,
+			Avatar:   memberInfo.Avatar,
+			Role:     m.Role,
 		})
 
 	}
@@ -179,11 +187,13 @@ func (s *Service) SendGroupMessage(groupID, fromUserID uint, msgType, content st
 		//在线发送，离线投到redis
 		if s.hub.IsOnline(m.UserID) {
 			s.hub.SendToUser(&GroupWSMessage{
-				Type:     "group_chat",
-				ToUserID: m.UserID,
-				GroupID:  groupID,
-				MsgType:  msgType,
-				Content:  content,
+				Type:         "group_chat",
+				ToUserID:     m.UserID,
+				GroupID:      groupID,
+				FromUserID:   fromUserID,
+				FromUserName: s.getSenderNickname(fromUserID), // 需要新增辅助方法
+				MsgType:      msgType,
+				Content:      content,
 			})
 		} else {
 			offlineMsg := cache.OfflineMessage{
@@ -213,6 +223,64 @@ func (s *Service) GetAllGroupUnread(userID uint) ([]UnreadCount, error) {
 }
 
 // GetGroupMessages 获取群聊历史消息
-func (s *Service) GetGroupMessages(groupID, cursor uint, limit int) ([]GroupMessage, error) {
-	return s.repo.FindMessagesByGroupID(groupID, limit+1, 0)
+func (s *Service) GetGroupMessages(groupID, cursor uint, limit int) ([]GroupMessageResp, error) {
+	messages, err := s.repo.FindMessagesByGroupID(groupID, limit+1, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取所有发送者的用户信息
+	userIDs := make([]uint, len(messages))
+	for i, msg := range messages {
+		userIDs[i] = msg.FromUserID
+	}
+
+	var users []user.User
+	if len(userIDs) > 0 {
+		config.DB.Where("id IN ?", userIDs).Find(&users)
+	}
+	userMap := make(map[uint]user.User)
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	result := make([]GroupMessageResp, 0, len(messages))
+	for _, msg := range messages {
+		senderName := ""
+		if u, ok := userMap[msg.FromUserID]; ok {
+			senderName = u.Nickname
+		}
+		result = append(result, GroupMessageResp{
+			ID:           msg.ID,
+			GroupID:      msg.GroupID,
+			FromUserID:   msg.FromUserID,
+			FromUserName: senderName,
+			Content:      msg.Content,
+			MsgType:      msg.MsgType,
+			CreatedAt:    uint(msg.CreatedAt.Unix()),
+		})
+	}
+	return result, nil
+}
+
+func (s *Service) getMemberInfo(userID uint) (MemberInfo, error) {
+	var user user.User
+	if err := config.DB.First(&user, userID).Error; err != nil {
+		return MemberInfo{}, err
+	}
+	return MemberInfo{
+		UserID:   user.ID,
+		Username: user.Username,
+		Nickname: user.Nickname,
+		Avatar:   user.Avatar,
+	}, nil
+}
+
+func (s *Service) getSenderNickname(userID uint) string {
+	var user user.User
+	err := config.DB.First(&user, userID).Error
+	if err != nil {
+		return ""
+	}
+	return user.Nickname
 }

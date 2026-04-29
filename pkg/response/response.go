@@ -27,3 +27,10 @@ func Error(c *gin.Context, code int) {
 		Msg:  errcode.GetMsg(code),
 	})
 }
+
+func ErrorWithMsg(c *gin.Context, code int, msg string) {
+	c.JSON(http.StatusOK, Response{
+		Code: code,
+		Msg:  msg,
+	})
+}
